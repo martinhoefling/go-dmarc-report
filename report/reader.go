@@ -30,7 +30,7 @@ func parseTime(timestamp string) time.Time {
 
 func (c *customTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
-	d.DecodeElement(&v, &start)
+	utils.CheckError(d.DecodeElement(&v, &start))
 	parse := parseTime(strings.TrimSpace(v))
 	*c = customTime{parse}
 	return nil
@@ -50,7 +50,7 @@ func parseInt(str string) int64 {
 
 func (c *customInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
-	d.DecodeElement(&v, &start)
+	utils.CheckError(d.DecodeElement(&v, &start))
 	parse := parseInt(strings.TrimSpace(v))
 	*c = customInt{parse}
 	return nil
@@ -76,7 +76,7 @@ func ReadReports(report_path string) map[string][]Feedback {
 		r, _ := regexp.Compile("(?is:<feedback.*</feedback>)")
 		validBytes := r.Find(fileBytes)
 		var q Query
-		xml.Unmarshal(validBytes, &q.Feedback)
+		utils.CheckError(xml.Unmarshal(validBytes, &q.Feedback))
 		domain := q.Feedback.PolicyPublished.Domain
 		domain_reports, ok := reports[domain]
 		if !ok {
