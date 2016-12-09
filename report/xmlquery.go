@@ -5,12 +5,12 @@ type Query struct {
 }
 
 type Feedback struct {
-	ReportMetadata  ReportMetadata  `xml:"report_metadata"`
+	Metadata        Metadata        `xml:"report_metadata"`
 	PolicyPublished PolicyPublished `xml:"policy_published"`
 	Records         []Record        `xml:"record"`
 }
 
-type ReportMetadata struct {
+type Metadata struct {
 	OrganizationName string    `xml:"org_name"`
 	Email            string    `xml:"email"`
 	ReportID         string    `xml:"report_id"`

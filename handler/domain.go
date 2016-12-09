@@ -24,16 +24,16 @@ func filterByDate(p Page) Page {
 	p.ReportsLastSixMonth = []report.Feedback{}
 	p.ReportsLastYear = []report.Feedback{}
 	for _, rep := range p.Reports {
-		if time.Now().Before(rep.ReportMetadata.DateRange.End.AddDate(0, 0, 7)) {
+		if time.Now().Before(rep.Metadata.DateRange.End.AddDate(0, 0, 7)) {
 			p.ReportsLastWeek = append(p.ReportsLastWeek, rep)
 		}
-		if time.Now().Before(rep.ReportMetadata.DateRange.End.AddDate(0, 1, 0)) {
+		if time.Now().Before(rep.Metadata.DateRange.End.AddDate(0, 1, 0)) {
 			p.ReportsLastMonth = append(p.ReportsLastMonth, rep)
 		}
-		if time.Now().Before(rep.ReportMetadata.DateRange.End.AddDate(0, 6, 0)) {
+		if time.Now().Before(rep.Metadata.DateRange.End.AddDate(0, 6, 0)) {
 			p.ReportsLastSixMonth = append(p.ReportsLastSixMonth, rep)
 		}
-		if time.Now().Before(rep.ReportMetadata.DateRange.End.AddDate(1, 0, 0)) {
+		if time.Now().Before(rep.Metadata.DateRange.End.AddDate(1, 0, 0)) {
 			p.ReportsLastYear = append(p.ReportsLastYear, rep)
 		}
 	}

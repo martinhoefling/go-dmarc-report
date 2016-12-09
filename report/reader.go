@@ -62,12 +62,12 @@ func (c *customInt) UnmarshalXMLAttr(attr xml.Attr) error {
 	return nil
 }
 
-func ReadReports(report_path string) map[string][]Feedback {
-	files, err := ioutil.ReadDir(report_path)
+func ReadReports(reportPath string) map[string][]Feedback {
+	files, err := ioutil.ReadDir(reportPath)
 	utils.CheckError(err)
 	reports := make(map[string][]Feedback)
 	for _, f := range files {
-		filePath, err := filepath.Abs(path.Join(report_path, f.Name()))
+		filePath, err := filepath.Abs(path.Join(reportPath, f.Name()))
 		utils.CheckError(err)
 		fmt.Printf("Loading %s\n", filePath)
 		fileBytes, err := ioutil.ReadFile(filePath)
@@ -78,12 +78,12 @@ func ReadReports(report_path string) map[string][]Feedback {
 		var q Query
 		utils.CheckError(xml.Unmarshal(validBytes, &q.Feedback))
 		domain := q.Feedback.PolicyPublished.Domain
-		domain_reports, ok := reports[domain]
+		domainReports, ok := reports[domain]
 		if !ok {
-			domain_reports = make([]Feedback, 0)
-			reports[domain] = append(domain_reports, q.Feedback)
+			domainReports = make([]Feedback, 0)
+			reports[domain] = append(domainReports, q.Feedback)
 		}
-		reports[domain] = append(domain_reports, q.Feedback)
+		reports[domain] = append(domainReports, q.Feedback)
 	}
 	return reports
 }
