@@ -22,43 +22,49 @@ type customInt struct {
 	int64
 }
 
-func parseTime(timestamp string) time.Time {
-	i, err := strconv.ParseInt(timestamp, 10, 64)
-	utils.CheckError(err)
-	return time.Unix(i, 0)
-}
-
 func (c *customTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
-	utils.CheckError(d.DecodeElement(&v, &start))
-	parse := parseTime(strings.TrimSpace(v))
-	*c = customTime{parse}
+	err := d.DecodeElement(&v, &start)
+	if err != nil {
+		return err
+	}
+	i, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil {
+		return err
+	}
+	*c = customTime{time.Unix(i, 0)}
 	return nil
 }
 
 func (c *customTime) UnmarshalXMLAttr(attr xml.Attr) error {
-	parse := parseTime(strings.TrimSpace(attr.Value))
-	*c = customTime{parse}
+	i, err := strconv.ParseInt(strings.TrimSpace(attr.Value), 10, 64)
+	if err != nil {
+		return err
+	}
+	*c = customTime{time.Unix(i, 0)}
 	return nil
-}
-
-func parseInt(str string) int64 {
-	i, err := strconv.ParseInt(str, 10, 0)
-	utils.CheckError(err)
-	return i
 }
 
 func (c *customInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
-	utils.CheckError(d.DecodeElement(&v, &start))
-	parse := parseInt(strings.TrimSpace(v))
-	*c = customInt{parse}
+	err := d.DecodeElement(&v, &start)
+	if err != nil {
+		return err
+	}
+	i, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return err
+	}
+	*c = customInt{i}
 	return nil
 }
 
 func (c *customInt) UnmarshalXMLAttr(attr xml.Attr) error {
-	parse := parseInt(strings.TrimSpace(attr.Value))
-	*c = customInt{parse}
+	i, err := strconv.ParseInt(strings.TrimSpace(attr.Value), 10, 64)
+	if err != nil {
+		return err
+	}
+	*c = customInt{i}
 	return nil
 }
 
