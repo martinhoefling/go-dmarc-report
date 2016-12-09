@@ -13,14 +13,14 @@ type Request struct {
 
 func Repository(reportPath string) {
 	reports := ReadReports(reportPath)
-    for request := range RequestChannel {
-        if request.Domain == "" {
-            FeedbackChannel <- reports
-        } else {
-            var domainReports = make(map[string][]Feedback)
-            domainReports[request.Domain] = reports[request.Domain]
-            FeedbackChannel <- domainReports
-        }
+	for request := range RequestChannel {
+		if request.Domain == "" {
+			FeedbackChannel <- reports
+		} else {
+			var domainReports = make(map[string][]Feedback)
+			domainReports[request.Domain] = reports[request.Domain]
+			FeedbackChannel <- domainReports
+		}
 	}
 }
 
