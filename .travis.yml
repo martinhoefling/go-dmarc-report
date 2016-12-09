@@ -7,9 +7,9 @@ install:
   - ./install_metalinter.sh
 
 script:
+  - ./lint_metalinter.sh
   - ./lint_gofmt.sh
   - ./run_tests.sh
-  - ./lint_metalinter.sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
