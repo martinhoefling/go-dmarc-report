@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DMARC Domains</title>
+</head>
+<body>
+<h1>DMARC Domains</h1>
+<ul>
+    {{ range $key, $value := . }}
+    <li><a href="domains/{{ $key }}/">{{ $key }}</a>: {{ len $value }} report{{ if gt (len $value) 1 }}(s){{ end }}</li>
+    {{ end }}
+</ul>
+</body>
+</html>
