@@ -2,32 +2,36 @@ package report
 
 import "time"
 
-var FeedbackChannel = make(chan map[string][]Feedback)
-var RequestChannel = make(chan Request)
+var requestChannel = make(chan request)
 
-type Request struct {
+type request struct {
 	Domain    string
 	StartDate time.Time
 	EndDate   time.Time
+	Result    chan map[string][]Feedback
 }
 
 func Repository(reportPath string) {
 	reports := ReadReports(reportPath)
-	for request := range RequestChannel {
-		if request.Domain == "" {
-			FeedbackChannel <- reports
+	for req := range requestChannel {
+		if req.Domain == "" {
+			req.Result <- reports
 		} else {
 			var domainReports = make(map[string][]Feedback)
-			domainReports[request.Domain] = reports[request.Domain]
-			FeedbackChannel <- domainReports
+			domainReports[req.Domain] = reports[req.Domain]
+			req.Result <- domainReports
 		}
 	}
 }
 
-func RequestAllReports() Request {
-	return Request{}
+func RequestAllReports() map[string][]Feedback {
+	req := request{Result: make(chan map[string][]Feedback, 1)}
+	requestChannel <- req
+	return <-req.Result
 }
 
-func RequestDomainReports(domain string) Request {
-	return Request{Domain: domain}
+func RequestDomainReports(domain string) map[string][]Feedback {
+	req := request{Domain: domain, Result: make(chan map[string][]Feedback, 1)}
+	requestChannel <- req
+	return <-req.Result
 }

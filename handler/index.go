@@ -7,7 +7,6 @@ import (
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	report.RequestChannel <- report.RequestAllReports()
-	feedbacks := <-report.FeedbackChannel
+	feedbacks := report.RequestAllReports()
 	renderTemplate(w, "index", feedbacks)
 }

@@ -43,8 +43,7 @@ func filterByDate(p Page) Page {
 func Domain(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	domain := vars["domain"]
-	report.RequestChannel <- report.RequestDomainReports(domain)
-	feedbacks := <-report.FeedbackChannel
+	feedbacks := report.RequestDomainReports(domain)
 	p := Page{Domain: domain, Reports: feedbacks[domain]}
 	p = filterByDate(p)
 	renderTemplate(w, "domain", p)
