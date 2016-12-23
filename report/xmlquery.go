@@ -7,7 +7,7 @@ type Query struct {
 type Feedback struct {
 	Metadata        Metadata        `xml:"report_metadata"`
 	PolicyPublished PolicyPublished `xml:"policy_published"`
-	Records         []Record        `xml:"record"`
+	Records         []Record        `xml:"record"` // Min 1
 }
 
 type Metadata struct {
@@ -18,11 +18,13 @@ type Metadata struct {
 }
 
 type PolicyPublished struct {
-	Domain  string    `xml:"domain"`
-	DKIM    string    `xml:"adkim"`
-	SPF     string    `xml:"aspf"`
-	Policy  string    `xml:"p"`
-	Percent customInt `xml:"pct"`
+	Domain                  string    `xml:"domain"`
+	DKIM                    string    `xml:"adkim"`
+	SPF                     string    `xml:"aspf"`
+	Policy                  string    `xml:"p"`
+	SubdomainPolicy         string    `xml:"sp"`
+	Percent                 customInt `xml:"pct"`
+	FailureReportingOptions string    `xml:"fo"`
 }
 
 type Record struct {
@@ -32,18 +34,20 @@ type Record struct {
 }
 
 type Row struct {
-	SourceIP        string          `xml:"source_ip"`
-	Count           customInt       `xml:"count"`
-	PolicyEvaluated PolicyEvaluated `xml:"policy_evaluated"`
+	SourceIP        string            `xml:"source_ip"`
+	Count           customInt         `xml:"count"`
+	PolicyEvaluated []PolicyEvaluated `xml:"policy_evaluated"` // Min 1
 }
 
 type Identifiers struct {
-	HeaderFrom string `xml:"header_from"`
+	HeaderFrom   []string `xml:"header_from"`   // Min 1
+	EnvelopeFrom []string `xml:"envelope_from"` // Min 1
+	EnvelopeTo   []string `xml:"envelope_to"`   // Min 0
 }
 
 type AuthResults struct {
-	DKIM DKIM `xml:"dkim"`
-	SPF  SPF  `xml:"spf"`
+	DKIM []DKIM `xml:"dkim"` // Min 0
+	SPF  []SPF  `xml:"spf"`  // Min 1
 }
 
 type PolicyEvaluated struct {
@@ -53,13 +57,16 @@ type PolicyEvaluated struct {
 }
 
 type DKIM struct {
-	Domain string `xml:"domain"`
-	Result string `xml:"result"`
+	Domain      []string `xml:"domain"`       // Min 1
+	Result      []string `xml:"result"`       // Min 1
+	HumanResult []string `xml:"human_result"` // Min 1
+	Selector    []string `xml:"selector"`     // Min 0
 }
 
 type SPF struct {
-	Domain string `xml:"domain"`
-	Result string `xml:"result"`
+	Domain []string `xml:"domain"` // Min 1
+	Result []string `xml:"result"` // Min 1
+	Scope  []string `xml:"scope"`  // Min 1
 }
 
 type DateRange struct {
