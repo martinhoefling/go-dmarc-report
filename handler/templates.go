@@ -5,11 +5,16 @@ import (
 	"net/http"
 )
 
-var templates = template.Must(template.ParseGlob("html/*"))
-
 func renderTemplate(w http.ResponseWriter, tmpl string, p interface{}) {
-	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	var templates = template.Must(template.ParseGlob("html/nested/*"))
+	templates, err := templates.ParseFiles("html/"+tmpl+".html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = templates.ExecuteTemplate(w, "base", p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

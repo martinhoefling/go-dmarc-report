@@ -1,15 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+{{ define "head" }}
     <title>DMARC Domains</title>
-</head>
-<body>
-<h1>DMARC Domains</h1>
-<ul>
-    {{ range $key, $value := . }}
-    <li><a href="domains/{{ $key }}/">{{ $key }}</a>: {{ len $value }} report{{ if gt (len $value) 1 }}(s){{ end }}</li>
-    {{ end }}
-</ul>
-</body>
-</html>
+{{end}}
+
+{{ define "content" }}
+<div class="panel panel-default">
+    <div class="panel-heading">DMARC Domains</div>
+    <div class="panel-body">
+    <ul>
+        {{ range $key, $value := . }}
+        <li><a href="domains/{{ $key }}/">{{ $key }}</a>: {{ len $value }} report{{ if gt (len $value) 1 }}(s){{ end }}</li>
+        {{ end }}
+    </ul>
+    </div>
+</div>
+{{ end }}

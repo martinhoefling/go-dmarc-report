@@ -1,19 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>DMARC Domain {{ .Domain }}</title>
-</head>
-<body>
-<h1>DMARC Domain {{ .Domain }}</h1>
+{{ define "head" }}
+<title>DMARC Domain {{ .Domain }}</title>
+{{ end }}
 
-<div>{{ len .Reports }} reports</div>
-<div>{{ len .ReportsLastWeek }}</div>
-<div>{{ len .ReportsLastMonth }}</div>
-<div>{{ len .ReportsLastSixMonth }}</div>
-<div>{{ len .ReportsLastYear }}</div>
-
-<ul>
-</ul>
-</body>
-</html>
+{{ define "content" }}
+<div class="panel panel-default">
+    <div class="panel-heading">Reports for Domain {{ .Domain }}</div>
+    <div class="panel-body">
+        <table>
+            <tr>
+                <td>Total reports:</td>
+                <td>{{ len .Reports }}</td>
+            <tr>
+                <td>Reports last week</td>
+                <td>{{ len .ReportsLastWeek }}</td>
+            <tr>
+                <td>Reports last month</td>
+                <td>{{ len .ReportsLastMonth }}</td>
+            <tr>
+                <td>Reports last half year</td>
+                <td>{{ len .ReportsLastSixMonth }}</td>
+            <tr>
+                <td>Reports last year</td>
+                <td>{{ len .ReportsLastYear }}</td>
+        </table>
+    </div>
+</div>
+{{ end }}
