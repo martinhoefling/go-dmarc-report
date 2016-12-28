@@ -16,6 +16,7 @@ type Page struct {
 	ReportsLastMonth    []report.Feedback
 	ReportsLastSixMonth []report.Feedback
 	ReportsLastYear     []report.Feedback
+	LastReports         []report.Feedback
 }
 
 func filterByDate(p Page) Page {
@@ -46,5 +47,6 @@ func Domain(w http.ResponseWriter, r *http.Request) {
 	feedbacks := report.RequestDomainReports(domain)
 	p := Page{Domain: domain, Reports: feedbacks[domain]}
 	p = filterByDate(p)
+	p.LastReports = p.Reports[len(p.Reports)-10:]
 	renderTemplate(w, "domain", p)
 }

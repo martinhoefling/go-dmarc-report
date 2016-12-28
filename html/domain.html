@@ -10,18 +10,31 @@
             <tr>
                 <td>Total reports:</td>
                 <td>{{ len .Reports }}</td>
+            </tr>
             <tr>
                 <td>Reports last week</td>
                 <td>{{ len .ReportsLastWeek }}</td>
+            </tr>
             <tr>
                 <td>Reports last month</td>
                 <td>{{ len .ReportsLastMonth }}</td>
+            </tr>
             <tr>
                 <td>Reports last half year</td>
                 <td>{{ len .ReportsLastSixMonth }}</td>
+            </tr>
             <tr>
                 <td>Reports last year</td>
                 <td>{{ len .ReportsLastYear }}</td>
+            </tr>
+            <tr>
+                <td>Last 10 Reports</td>
+                <table>
+                    <thead>
+                    <tr><td>From</td><td></td></tr>
+                    </thead>
+                </table>
+            </tr>
         </table>
     </div>
 </div>

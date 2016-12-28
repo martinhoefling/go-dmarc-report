@@ -7,7 +7,7 @@ import (
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p interface{}) {
 	var templates = template.Must(template.ParseGlob("html/nested/*"))
-	templates, err := templates.ParseFiles("html/"+tmpl+".html")
+	templates, err := templates.ParseFiles("html/" + tmpl + ".html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
