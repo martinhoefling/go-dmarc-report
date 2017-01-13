@@ -9,7 +9,9 @@ import (
 	"github.com/martinhoefling/go-dmarc-report/report"
 )
 
-type Page struct {
+const lastReportsCount = 10
+
+type DomainPage struct {
 	Domain              string
 	Reports             []report.Feedback
 	ReportsLastWeek     []report.Feedback
@@ -19,7 +21,7 @@ type Page struct {
 	LastReports         []report.Feedback
 }
 
-func filterByDate(p Page) Page {
+func filterByDate(p DomainPage) DomainPage {
 	p.ReportsLastWeek = []report.Feedback{}
 	p.ReportsLastMonth = []report.Feedback{}
 	p.ReportsLastSixMonth = []report.Feedback{}
@@ -45,8 +47,14 @@ func Domain(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	domain := vars["domain"]
 	feedbacks := report.RequestDomainReports(domain)
-	p := Page{Domain: domain, Reports: feedbacks[domain]}
+	p := DomainPage{Domain: domain, Reports: feedbacks[domain]}
 	p = filterByDate(p)
-	p.LastReports = p.Reports[len(p.Reports)-10:]
+	var fromReport int
+	if len(p.Reports) > lastReportsCount {
+		fromReport = len(p.Reports) - 10
+	} else {
+		fromReport = 0
+	}
+	p.LastReports = p.Reports[fromReport:]
 	renderTemplate(w, "domain", p)
 }

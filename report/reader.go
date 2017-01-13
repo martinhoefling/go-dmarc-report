@@ -31,6 +31,10 @@ type customInt struct {
 	int64
 }
 
+func (c customInt) String() string {
+	return fmt.Sprintf("%v", c.int64)
+}
+
 func (c *customTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
 	err := d.DecodeElement(&v, &start)

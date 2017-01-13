@@ -1,160 +1,164 @@
-{{ head }}
-<title>Report {{ .Metadata.ReportID }}</title>
+{{ define "head" }}
+<title>Report {{ .Report.Metadata.ReportID }}</title>
 {{ end }}
 
-{{ content }}
+{{ define "metadata" }}
 <div class="dmarc-report-metadata panel panel-default">
-    <div class="panel-heading">Report from google.com (1.11.16 - 8.11.16)</div>
+    <div class="panel-heading">Report from {{ .OrganizationName }} ({{ .DateRange.Begin }} - {{ .DateRange.End }})</div>
     <div class="panel-body">
         <table class="table">
             <tr>
                 <td>Contact Email</td>
-                <td>noreply-dmarc-support@google.com</td>
+                <td>{{ .Email }}</td>
             </tr>
             <tr>
                 <td>Contact Info</td>
-                <td>https://support.google.com/a/answer/2466580</td>
+                <td>{{ .ContactInfo }}</td>
             </tr>
             <tr>
                 <td>Report ID</td>
-                <td>5979980982403083100</td>
+                <td>{{ .ReportID }}</td>
             </tr>
         </table>
     </div>
 </div>
+{{ end }}
 
+{{ define "policy_published" }}
 <div class="dmarc-policy-published panel panel-default">
-    <div class="panel-heading">Published Policy for stefan-hoefling.de</div>
+    <div class="panel-heading">Published Policy for {{ .Domain }}</div>
     <div class="panel-body">
         <table class="table">
             <tr>
                 <td>DKIM Identifier Alignment</td>
-                <td>relaxed</td>
+                <td>{{ .DKIM }}</td>
             </tr>
             <tr>
                 <td>SPF Identifier Alignment</td>
-                <td>relaxed</td>
+                <td>{{ .SPF }}</td>
             </tr>
             <tr>
                 <td>Requested Mail Receiver Policy</td>
-                <td>none</td>
+                <td>{{ .Policy }}</td>
             </tr>
             <tr>
                 <td>Subdomain Policy</td>
-                <td>none</td>
+                <td>{{ .SubdomainPolicy }}</td>
             </tr>
             <tr>
                 <td>Applied Percentage</td>
-                <td>100</td>
+                <td>{{ .Percent }}</td>
             </tr>
         </table>
     </div>
 </div>
+{{ end }}
 
+{{ define "records" }}
 <div class="dmarc-records panel panel-default">
     <div class="panel-heading">Records</div>
+    <div class="panel-body">
+        {{ range $value := . }}
+        {{ template "record" $value }}
+        {{ end }}
+    </div>
+</div>
+{{ end }}
+
+{{ define "record" }}
+<div class="panel-heading">Source: {{ .Row.SourceIP }} ({{ .Row.Count }})</div>
+<div class="panel-body">
+    <div class="panel-heading">Evaluated Policies</div>
     <div class="panel-body">
         <table class="table-striped">
             <thead>
             <tr>
-                <td>IP Address</td>
-                <td>Count</td>
-                <td>Policy Applied
-                    <table class="table">
-                        <thead>
-                        <tr>
-                            <td>Disposition</td>
-                            <td>DKIM</td>
-                            <td>SPF</td>
-                        </tr>
-                        </thead>
-                    </table>
-                </td>
-                <td>Authentication
-                    <table class="table">
-                        <thead>
-                        <tr>
-                            <td>DKIM Domain</td>
-                            <td>DKIM Result</td>
-                            <td>SPF Domain</td>
-                            <td>SPF Result</td>
-                        </tr>
-                        </thead>
-                    </table>
-                </td>
+                <td>Disposition</td>
+                <td>DKIM</td>
+                <td>SPF</td>
             </tr>
             </thead>
             <tbody>
+            {{ range $policy := .Row.PolicyEvaluated }}
             <tr>
-                <td>188.213.124.241</td>
-                <td>1</td>
-                <td>
-                    <table class="table">
-                        <tr>
-                            <td>none</td>
-                            <td>fail</td>
-                            <td>fail</td>
-                        </tr>
-                    </table>
-                </td>
-                <td>
-                    <table class="table">
-                        <tr>
-                            <td>stefan-hoefling.de</td>
-                            <td>fail</td>
-                            <td>srs.web.de</td>
-                            <td>pass</td>
-                        </tr>
-                    </table>
-                </td>
+                <td>{{ $policy.Disposition }}</td>
+                <td>{{ $policy.DKIM }}</td>
+                <td>{{ $policy.SPF }}</td>
             </tr>
+            {{ end }}
             </tbody>
-            <div class="dmarc-record">
-                <div class="dmarc-row">
-                    <div class="dmarc-source-ip">188.213.124.241</div>
-                    <div class="dmarc-count">1</div>
-                    <div class="dmarc-policy-evaluated">
-                        <div class="dmarc-disposition">none</div>
-                        <div class="dmarc-dkim">fail</div>
-                        <div class="dmarc-spf">fail</div>
-                    </div>
-                </div>
-                <div class="dmarc-identifiers">
-                    <div class="dmarc-header-from">stefan-hoefling.de</div>
-                </div>
-                <div class="dmarc-auth-results">
-                    <div class="dmarc-spf">
-                        <div class="dmarc-domain">stefan-hoefling.de</div>
-                        <div class="dmarc-result">fail</div>
-                    </div>
-                </div>
-            </div>
+        </table>
+    </div>
 
-            <div class="dmarc-record">
-                <div class="dmarc-row">
-                    <div class="dmarc-source-ip">201.130.10.30</div>
-                    <div class="dmarc-count">3</div>
-                    <div class="dmarc-policy_evaluated">
-                        <div class="dmarc-disposition">none</div>
-                        <div class="dmarc-dkim">fail</div>
-                        <div class="dmarc-spf">fail</div>
-                    </div>
-                </div>
-                <div class="dmarc-identifiers">
-                    <div class="dmarc-header-from">stefan-hoefling.de</div>
-                </div>
-                <div class="dmarc-auth_results">
-                    <dkim>
-                        <domain>hoefling-acuna.de</domain>
-                        <result>pass</result>
-                        <selector>default</selector>
-                    </dkim>
-                    <div class="dmarc-spf">
-                        <div class="dmarc-domain">stefan-hoefling.de</div>
-                        <div class="dmarc-result">fail</div>
-                    </div>
-                </div>
-            </div>
+    <div class="panel-heading">Identifiers</div>
+    <div class="panel-body">
+        <table class="table-striped">
+            {{ if len .Identifiers.HeaderFrom  }}
+            <tr>
+                <td>Header From</td>
+                <td>{{ range $addr := .Identifiers.HeaderFrom }}{{ $addr }} {{ end }}</td>
+            </tr>
+            {{ end }}
+            {{ if len .Identifiers.EnvelopeFrom  }}
+            <tr>
+                <td>Envelope From</td>
+                <td>{{ range $addr := .Identifiers.EnvelopeFrom }}{{ $addr }} {{ end }}</td>
+            </tr>
+            {{ end }}
+            {{ if len .Identifiers.EnvelopeTo  }}
+            <tr>
+                <td>Envelope to</td>
+                <td>{{ range $addr := .Identifiers.EnvelopeTo }}{{ $addr }} {{ end }}</td>
+            </tr>
+            {{ end }}
+        </table>
+    </div>
+
+    <div class="panel-heading">DKIM Auth Results</div>
+    <div class="panel-body">
+        <table class="table-striped">
+            <thead>
+            <tr>
+                <td>Domain</td>
+                <td>Result</td>
+                <td>Human Result</td>
+                <td>Selector</td>
+            </tr>
+            </thead>
+            {{ range $result := .AuthResults.DKIM  }}
+            <tr>
+                <td>{{ $result.Domain }}</td>
+                <td>{{ $result.Result }}</td>
+                <td>{{ $result.HumanResult }}</td>
+                <td>{{ $result.Selector }}</td>
+            </tr>
+            {{ end }}
+        </table>
+    </div>
+    <div class="panel-heading">SPF Auth Results</div>
+    <div class="panel-body">
+        <table class="table-striped">
+            <thead>
+            <tr>
+                <td>Domain</td>
+                <td>Result</td>
+                <td>Scope</td>
+            </tr>
+            </thead>
+            {{ range $result := .AuthResults.SPF  }}
+            <tr>
+                <td>{{ $result.Domain }}</td>
+                <td>{{ $result.Result }}</td>
+                <td>{{ $result.Scope }}</td>
+            </tr>
+            {{ end }}
+        </table>
     </div>
 </div>
+{{ end }}
+
+{{ define "content" }}
+{{ template "metadata" .Report.Metadata }}
+{{ template "policy_published" .Report.PolicyPublished }}
+{{ template "records" .Report.Records }}
 {{ end }}

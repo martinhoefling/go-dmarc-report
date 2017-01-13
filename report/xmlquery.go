@@ -15,6 +15,7 @@ type Metadata struct {
 	Email            string    `xml:"email"`
 	ReportID         string    `xml:"report_id"`
 	DateRange        DateRange `xml:"date_range"`
+	ContactInfo      string    `xml:"extra_contact_info"` // Max 1
 }
 
 type PolicyPublished struct {
@@ -41,7 +42,7 @@ type Row struct {
 
 type Identifiers struct {
 	HeaderFrom   []string `xml:"header_from"`   // Min 1
-	EnvelopeFrom []string `xml:"envelope_from"` // Min 1
+	EnvelopeFrom []string `xml:"envelope_from"` // Min 1 ??
 	EnvelopeTo   []string `xml:"envelope_to"`   // Min 0
 }
 
@@ -57,16 +58,16 @@ type PolicyEvaluated struct {
 }
 
 type DKIM struct {
-	Domain      []string `xml:"domain"`       // Min 1
-	Result      []string `xml:"result"`       // Min 1
-	HumanResult []string `xml:"human_result"` // Min 1
-	Selector    []string `xml:"selector"`     // Min 0
+	Domain      string `xml:"domain"`       // Min 1
+	Result      string `xml:"result"`       // Min 1
+	HumanResult string `xml:"human_result"` // Min 1
+	Selector    string `xml:"selector"`     // Min 0
 }
 
 type SPF struct {
-	Domain []string `xml:"domain"` // Min 1
-	Result []string `xml:"result"` // Min 1
-	Scope  []string `xml:"scope"`  // Min 1
+	Domain string `xml:"domain"` // Min 1
+	Result string `xml:"result"` // Min 1
+	Scope  string `xml:"scope"`  // Min 1
 }
 
 type DateRange struct {

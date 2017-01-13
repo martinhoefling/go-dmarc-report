@@ -6,7 +6,7 @@
 <div class="panel panel-default">
     <div class="panel-heading">Reports for Domain {{ .Domain }}</div>
     <div class="panel-body">
-        <table>
+        <table class="table">
             <tr>
                 <td>Total reports:</td>
                 <td>{{ len .Reports }}</td>
@@ -28,12 +28,22 @@
                 <td>{{ len .ReportsLastYear }}</td>
             </tr>
             <tr>
-                <td>Last 10 Reports</td>
-                <table>
+                <td>Last 10 Reports
+                <table class="table">
                     <thead>
-                    <tr><td>From</td><td></td></tr>
+                        <tr><td>From</td><td>Date</td></tr>
                     </thead>
+                    <tbody>
+                    {{ range $key, $value := .LastReports }}
+                    <tr>
+                        <td><a href="report/{{ $value.Metadata.ReportID }}">{{ $value.Metadata.OrganizationName }}</a></td>
+                        <td><a href="report/{{ $value.Metadata.ReportID }}">{{ $value.Metadata.DateRange.End }}</a></td>
+                    </tr>
+
+                    {{ end }}
+                    </tbody>
                 </table>
+                    </td>
             </tr>
         </table>
     </div>

@@ -25,6 +25,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", handler.Index)
 	r.HandleFunc("/domains/{domain}/", handler.Domain)
+	r.HandleFunc("/domains/{domain}/report/{id}", handler.SingleReport)
 
 	srv := &http.Server{
 		Handler:      r,

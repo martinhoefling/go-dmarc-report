@@ -54,46 +54,46 @@ func ListMessages(c *client.Client) (list [][]byte) {
 			log.Fatal(err)
 		}
 	}()
-    messages := []*imap.Message{}
+	messages := []*imap.Message{}
 	for msg := range messageChan {
-        messages = append(messages, msg)
-    }
+		messages = append(messages, msg)
+	}
 
 	for _, msg := range messages {
 		if msg == nil || msg.BodyStructure == nil {
-            log.Printf("nil/bad message: %v", msg)
+			log.Printf("nil/bad message: %v", msg)
 			continue
 		}
-        if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
-            found := false
-            for i, part := range msg.BodyStructure.Parts {
-                mimeType := strings.ToLower(part.MimeType)
-                if mimeType == "application" {
-                    filename, data, err := GetAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
-                    if err != nil {
-                        log.Println(err)
-                        continue
-                    }
-                    list = append(list, data)
-                    found = true
-                }
-            }
-            if !found {
-                fmt.Println("No application part found :/")
-                //fmt.Println("No application part found :/ Parts:")
-                //for _, part := range msg.BodyStructure.Parts {
-                    //fmt.Println(part)
-                //}
-                //fmt.Println("------------------------------------")
-            }
-        } else if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
-            filename, data, err := GetAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
-            if err != nil {
-                log.Println(err)
-                continue
-            }
-            list = append(list, data)
-        }
+		if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
+			found := false
+			for i, part := range msg.BodyStructure.Parts {
+				mimeType := strings.ToLower(part.MimeType)
+				if mimeType == "application" {
+					_, data, err := GetAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					list = append(list, data)
+					found = true
+				}
+			}
+			if !found {
+				fmt.Println("No application part found :/")
+				//fmt.Println("No application part found :/ Parts:")
+				//for _, part := range msg.BodyStructure.Parts {
+				//fmt.Println(part)
+				//}
+				//fmt.Println("------------------------------------")
+			}
+		} else if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
+			_, data, err := GetAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			list = append(list, data)
+		}
 	}
 	return
 }
@@ -103,7 +103,7 @@ func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 	seqset.AddNum(id)
 	messageChan := make(chan *imap.Message, 1)
 
-    reqString := fmt.Sprintf("BODY.PEEK%v", part)
+	reqString := fmt.Sprintf("BODY.PEEK%v", part)
 	err := c.Fetch(&seqset, []string{reqString}, messageChan)
 	if err != nil {
 		return "", nil, err
@@ -112,14 +112,14 @@ func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 	if msg == nil {
 		return "", nil, errors.New("No message returned")
 	}
-    filename, ok := info.Params["name"]
-    if ok {
-        fmt.Println("Filename:")
-        fmt.Println(filename)
-    } else {
-        fmt.Println("No filename :(")
-    }
-    fmt.Println("---------------------------")
+	filename, ok := info.Params["name"]
+	if ok {
+		fmt.Println("Filename:")
+		fmt.Println(filename)
+	} else {
+		fmt.Println("No filename :(")
+	}
+	fmt.Println("---------------------------")
 	for section, body := range msg.Body {
 		if section.String() == fmt.Sprintf("BODY%v", part) {
 			var bodyReader io.Reader
