@@ -15,8 +15,9 @@ import (
 	"github.com/howeyc/gopass"
 )
 
+// Connect performs an interactive connection to the given IMAP server
 func Connect(server, username string) (*client.Client, error) {
-	log.Printf("[%v] IMAP Password for %v: ", server, username)
+	log.Printf("Enter IMAP Password for %v on %v: ", username, server)
 	password, err := gopass.GetPasswd()
 	if err != nil {
 		return nil, err
@@ -36,10 +37,45 @@ func Connect(server, username string) (*client.Client, error) {
 		}
 		return nil, err
 	}
-	log.Printf("Logged in on %v as user %v.", server, username)
+	log.Printf("Logged in as user %v on %v.", username, server)
 	return c, nil
 }
 
+func extractData(c *client.Client, msg *imap.Message) []byte {
+    if msg == nil || msg.BodyStructure == nil {
+        log.Printf("nil/bad message: %v", msg)
+        return nil
+    }
+    if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
+        for i, part := range msg.BodyStructure.Parts {
+            mimeType := strings.ToLower(part.MimeType)
+            if mimeType == "application" {
+                _, data, err := GetAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
+                if err != nil {
+                    log.Println(err)
+                    continue
+                }
+                return data
+            }
+        }
+        fmt.Println("No application part found :/")
+        //fmt.Println("No application part found :/ Parts:")
+        //for _, part := range msg.BodyStructure.Parts {
+        //fmt.Println(part)
+        //}
+        //fmt.Println("------------------------------------")
+    } else if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
+        _, data, err := GetAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
+        if err != nil {
+            log.Println(err)
+            return nil
+        }
+        return data
+    }
+    return nil
+}
+
+// ListMessages returns a list of the byte value of attachments with the MIME type of application
 func ListMessages(c *client.Client) (list [][]byte) {
 	// Get all messages
 	seqset, err := imap.NewSeqSet("1:*")
@@ -57,46 +93,16 @@ func ListMessages(c *client.Client) (list [][]byte) {
 	for msg := range messageChan {
 		messages = append(messages, msg)
 	}
-
 	for _, msg := range messages {
-		if msg == nil || msg.BodyStructure == nil {
-			log.Printf("nil/bad message: %v", msg)
-			continue
-		}
-		if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
-			found := false
-			for i, part := range msg.BodyStructure.Parts {
-				mimeType := strings.ToLower(part.MimeType)
-				if mimeType == "application" {
-					_, data, err := GetAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					list = append(list, data)
-					found = true
-				}
-			}
-			if !found {
-				fmt.Println("No application part found :/")
-				//fmt.Println("No application part found :/ Parts:")
-				//for _, part := range msg.BodyStructure.Parts {
-				//fmt.Println(part)
-				//}
-				//fmt.Println("------------------------------------")
-			}
-		} else if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
-			_, data, err := GetAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			list = append(list, data)
-		}
+        data := extractData(c, msg)
+        if data != nil {
+            list = append(list, data)
+        }
 	}
 	return
 }
 
+// GetAttachment returns the specified attachment given the client
 func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStructure) (string, []byte, error) {
 	seqset := imap.SeqSet{}
 	seqset.AddNum(id)
@@ -136,6 +142,7 @@ func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 	return "", nil, errors.New("No attachment found")
 }
 
+// GetAllAttachments returns all DMARC-relevant attachments in the given mailbox
 func GetAllAttachments(server, user, mailbox string) error {
 	c, err := Connect(server, user)
 	if err != nil {
