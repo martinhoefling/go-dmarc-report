@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,21 +16,19 @@ import (
 )
 
 func Connect(server, username string) (*client.Client, error) {
-	log.Print("IMAP Password: ")
+	log.Printf("[%v] IMAP Password for %v: ", server, username)
 	password, err := gopass.GetPasswd()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("Connecting to server...")
-	// Connect to server
+	log.Printf("Connecting to %v...", server)
 	c, err := client.DialTLS(server, nil)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Connected")
+	log.Printf("Connected to %v.", server)
 
-	// Login
 	if err := c.Login(username, string(password)); err != nil {
 		err2 := c.Logout()
 		if err2 != nil {
@@ -37,7 +36,7 @@ func Connect(server, username string) (*client.Client, error) {
 		}
 		return nil, err
 	}
-	log.Println("Logged in")
+	log.Printf("Logged in on %v as user %v.", server, username)
 	return c, nil
 }
 
@@ -169,8 +168,13 @@ func GetAllAttachments(server, user, mailbox string) error {
 }
 
 func main() {
-	err := GetAllAttachments("mail.foo.to:993", "johannes@ebke.org", "INBOX/admin/ebke.org/postmaster")
-	//err := GetAllAttachments("mail.foo.to:993", "johannes@ebke.org", "INBOX/admin/symann.org/postmaster")
+	var server, username, mailbox string
+	flag.StringVar(&server, "server", "", "Mail server to use")
+	flag.StringVar(&username, "username", "", "Username for logging into the mail server")
+	flag.StringVar(&mailbox, "mailbox", "", "Mailbox to read messages from")
+	flag.Parse()
+
+	err := GetAllAttachments(server, username, mailbox)
 	if err != nil {
 		log.Fatal(err)
 	}
