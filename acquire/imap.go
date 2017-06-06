@@ -1,28 +1,20 @@
-package main
+package acquire
 
 import (
 	"encoding/base64"
-	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"strings"
 
+	"github.com/alexflint/go-restructure"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"github.com/howeyc/gopass"
 )
 
 // Connect performs an interactive connection to the given IMAP server
-func Connect(server, username string) (*client.Client, error) {
-	log.Printf("Enter IMAP Password for %v on %v: ", username, server)
-	password, err := gopass.GetPasswd()
-	if err != nil {
-		return nil, err
-	}
-
+func connect(server, username, password string) (*client.Client, error) {
 	log.Printf("Connecting to %v...", server)
 	c, err := client.DialTLS(server, nil)
 	if err != nil {
@@ -30,7 +22,7 @@ func Connect(server, username string) (*client.Client, error) {
 	}
 	log.Printf("Connected to %v.", server)
 
-	if err := c.Login(username, string(password)); err != nil {
+	if err := c.Login(username, password); err != nil {
 		err2 := c.Logout()
 		if err2 != nil {
 			log.Print(err2)
@@ -41,42 +33,7 @@ func Connect(server, username string) (*client.Client, error) {
 	return c, nil
 }
 
-func extractData(c *client.Client, msg *imap.Message) []byte {
-    if msg == nil || msg.BodyStructure == nil {
-        log.Printf("nil/bad message: %v", msg)
-        return nil
-    }
-    if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
-        for i, part := range msg.BodyStructure.Parts {
-            mimeType := strings.ToLower(part.MimeType)
-            if mimeType == "application" {
-                _, data, err := GetAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
-                if err != nil {
-                    log.Println(err)
-                    continue
-                }
-                return data
-            }
-        }
-        fmt.Println("No application part found :/")
-        //fmt.Println("No application part found :/ Parts:")
-        //for _, part := range msg.BodyStructure.Parts {
-        //fmt.Println(part)
-        //}
-        //fmt.Println("------------------------------------")
-    } else if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
-        _, data, err := GetAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
-        if err != nil {
-            log.Println(err)
-            return nil
-        }
-        return data
-    }
-    return nil
-}
-
-// ListMessages returns a list of the byte value of attachments with the MIME type of application
-func ListMessages(c *client.Client) (list [][]byte) {
+func getDmarcMessageSubjects(c *client.Client) (dmarcEmails []uniqueDmarcReportEmailSubject) {
 	// Get all messages
 	seqset, err := imap.NewSeqSet("1:*")
 	if err != nil {
@@ -84,26 +41,58 @@ func ListMessages(c *client.Client) (list [][]byte) {
 	}
 	messageChan := make(chan *imap.Message)
 	go func() {
-		// c.Fetch closes the messages channel when done.
-		if err := c.Fetch(seqset, []string{"ENVELOPE", "BODYSTRUCTURE"}, messageChan); err != nil {
+		if err := c.Fetch(seqset, []string{"ENVELOPE", "UID"}, messageChan); err != nil {
 			log.Fatal(err)
 		}
 	}()
-	messages := []*imap.Message{}
 	for msg := range messageChan {
-		messages = append(messages, msg)
-	}
-	for _, msg := range messages {
-        data := extractData(c, msg)
-        if data != nil {
-            list = append(list, data)
-        }
+		var subject dmarcReportEmailSubject
+		ok, err := restructure.Find(&subject, msg.Envelope.Subject)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if ok {
+			email := uniqueDmarcReportEmailSubject{subject, msg.Uid}
+			log.Printf("Report for %s from %s with ID %s", email.Domain, email.Submitter, email.ReportID)
+			dmarcEmails = append(dmarcEmails, email)
+		} else {
+			log.Printf("Subject: \"%s\" is not a dmarc report", msg.Envelope.Subject)
+		}
 	}
 	return
 }
 
+func extractData(c *client.Client, msg *imap.Message) (string, []byte, error) {
+	if msg == nil || msg.BodyStructure == nil {
+		return "", nil, fmt.Errorf("nil/bad message: %v", msg)
+	}
+	if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
+		for i, part := range msg.BodyStructure.Parts {
+			mimeType := strings.ToLower(part.MimeType)
+			if mimeType == "application" {
+				filename, data, err := getAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				return filename, data, nil
+			}
+		}
+		return "", nil, fmt.Errorf("No application part found in message %v", msg)
+	}
+
+	if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
+		filename, data, err := getAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
+		if err != nil {
+			return "", nil, err
+		}
+		return filename, data, nil
+	}
+	return "", nil, fmt.Errorf("No attachement found in message %v", msg)
+}
+
 // GetAttachment returns the specified attachment given the client
-func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStructure) (string, []byte, error) {
+func getAttachment(c *client.Client, id uint32, part string, info *imap.BodyStructure) (string, []byte, error) {
 	seqset := imap.SeqSet{}
 	seqset.AddNum(id)
 	messageChan := make(chan *imap.Message, 1)
@@ -115,20 +104,18 @@ func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 	}
 	msg := <-messageChan
 	if msg == nil {
-		return "", nil, errors.New("No message returned")
+		return "", nil, fmt.Errorf("No message with id %d", id)
 	}
 	filename, ok := info.Params["name"]
-	if ok {
-		fmt.Println("Filename:")
-		fmt.Println(filename)
-	} else {
-		fmt.Println("No filename :(")
+	if !ok {
+		filename, ok = info.DispositionParams["filename"]
+		if !ok {
+			return "", nil, fmt.Errorf("No filename found in message  %v", msg)
+		}
 	}
-	fmt.Println("---------------------------")
 	for section, body := range msg.Body {
 		if section.String() == fmt.Sprintf("BODY%v", part) {
-			var bodyReader io.Reader
-			bodyReader = body
+			bodyReader := io.Reader(body)
 			if info.Encoding == "base64" {
 				bodyReader = base64.NewDecoder(base64.StdEncoding, bodyReader)
 			}
@@ -139,50 +126,40 @@ func GetAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 			return filename, data, nil
 		}
 	}
-	return "", nil, errors.New("No attachment found")
+	return "", nil, fmt.Errorf("No attachment found in msg %v", msg)
 }
 
-// GetAllAttachments returns all DMARC-relevant attachments in the given mailbox
-func GetAllAttachments(server, user, mailbox string) error {
-	c, err := Connect(server, user)
-	if err != nil {
-		return err
+// getDmarcMessageBodyStructures returns a list of the byte value of attachments with the MIME type of application
+func getDmarcMessageAttachments(c *client.Client, uniqueSubjects []uniqueDmarcReportEmailSubject, outputChan chan *dmarcReportEmail) {
+	seqset := imap.SeqSet{}
+	for _, dmarcMessage := range uniqueSubjects {
+		seqset.AddNum(dmarcMessage.UID)
+	}
+	subjectMap := make(map[uint32]uniqueDmarcReportEmailSubject)
+	for _, subject := range uniqueSubjects {
+		subjectMap[subject.UID] = subject
 	}
 
-	// Don't forget to logout
-	defer func() {
-		err2 := c.Logout()
-		if err2 != nil {
-			log.Print(err2)
+	messageChan := make(chan *imap.Message)
+	go func() {
+		if err := c.UidFetch(&seqset, []string{"ENVELOPE", "BODYSTRUCTURE"}, messageChan); err != nil {
+			log.Fatal(err)
 		}
 	}()
+	messages := []*imap.Message{}
 
-	mbox, err := c.Select(mailbox, true)
-	if err != nil {
-		return err
+	for msg := range messageChan {
+		messages = append(messages, msg)
 	}
-
-	log.Printf("Listing all messages in %v", mailbox)
-	messageIds := ListMessages(c)
-	log.Printf("There are %v messages in %v, of which %v have relevant attachments", mbox.Messages, mbox.Name, len(messageIds))
-	for i, data := range messageIds {
-		err = ioutil.WriteFile(fmt.Sprintf("attachment-%v.dat", i), data, 0600)
+	for _, msg := range messages {
+		filename, data, err := extractData(c, msg)
 		if err != nil {
-			return err
+			log.Fatal(err)
+		}
+		if data != nil && filename != "" {
+			outputChan <- &dmarcReportEmail{subjectMap[msg.Uid], data, filename}
 		}
 	}
-	return nil
-}
-
-func main() {
-	var server, username, mailbox string
-	flag.StringVar(&server, "server", "", "Mail server to use")
-	flag.StringVar(&username, "username", "", "Username for logging into the mail server")
-	flag.StringVar(&mailbox, "mailbox", "", "Mailbox to read messages from")
-	flag.Parse()
-
-	err := GetAllAttachments(server, username, mailbox)
-	if err != nil {
-		log.Fatal(err)
-	}
+	close(outputChan)
+	return
 }
