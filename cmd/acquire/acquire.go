@@ -24,8 +24,9 @@ func getPassword(username, server string) (password string) {
 }
 
 func main() {
-	var server, username, mailbox string
+	var server, username, mailbox, reportDir string
 	var err error
+	flag.StringVar(&reportDir, "reportdir", "", "Report directory")
 	flag.StringVar(&server, "server", "", "Mail server to use")
 	flag.StringVar(&username, "username", "", "Username for logging into the mail server")
 	flag.StringVar(&mailbox, "mailbox", "", "Mailbox to read messages from")
@@ -33,7 +34,7 @@ func main() {
 
 	password := getPassword(username, server)
 
-	err = acquire.DownloadMissingAttachments(server, username, password, mailbox)
+	err = acquire.DownloadMissingAttachments(server, username, password, mailbox, reportDir)
 
 	if err != nil {
 		log.Fatal(err)

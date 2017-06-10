@@ -3,7 +3,7 @@ package acquire
 import "log"
 
 // DownloadMissingAttachments returns all DMARC-relevant attachments in the given mailbox
-func DownloadMissingAttachments(server, user, password, mailbox string) error {
+func DownloadMissingAttachments(server, user, password, mailbox, reportDir string) error {
 	connection, err := connect(server, user, password)
 	if err != nil {
 		return err
@@ -23,7 +23,7 @@ func DownloadMissingAttachments(server, user, password, mailbox string) error {
 
 	log.Printf("Listing all messages in %v", mailbox)
 	uniqueSubjects := getDmarcMessageSubjects(connection)
-	filteredSubjects, err := filterDownloadedSubjects(uniqueSubjects)
+	filteredSubjects, err := filterDownloadedSubjects(uniqueSubjects, reportDir)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func DownloadMissingAttachments(server, user, password, mailbox string) error {
 	go getDmarcMessageAttachments(connection, filteredSubjects, outputChan)
 
 	for msg := range outputChan {
-		err = writeReport(msg)
+		err = writeReport(msg, reportDir)
 		if err != nil {
 			return err
 		}

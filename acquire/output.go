@@ -9,13 +9,13 @@ import (
 	"log"
 )
 
-func (subject uniqueDmarcReportEmailSubject) targetDir() string {
-	return filepath.Join(subject.Domain, subject.Submitter)
+func (subject uniqueDmarcReportEmailSubject) targetDir(base string) string {
+	return filepath.Join(base, subject.Domain, subject.Submitter)
 }
 
-func (subject uniqueDmarcReportEmailSubject) targetPath() string {
+func (subject uniqueDmarcReportEmailSubject) targetPath(base string) string {
 	targetFile := fmt.Sprintf("%s.xml", subject.ReportID)
-	return filepath.Join(subject.targetDir(), targetFile)
+	return filepath.Join(subject.targetDir(base), targetFile)
 }
 
 func pathExists(path string) (bool, error) {
@@ -40,10 +40,10 @@ func ensureDirExists(path string) error {
 	return nil
 }
 
-func filterDownloadedSubjects(subjects []uniqueDmarcReportEmailSubject) (filteredSubjects []uniqueDmarcReportEmailSubject, err error) {
+func filterDownloadedSubjects(subjects []uniqueDmarcReportEmailSubject, baseDir string) (filteredSubjects []uniqueDmarcReportEmailSubject, err error) {
 	var exists bool
 	for _, subject := range subjects {
-		exists, err = pathExists(subject.targetPath())
+		exists, err = pathExists(subject.targetPath(baseDir))
 		if err != nil {
 			return nil, err
 		}
@@ -54,8 +54,8 @@ func filterDownloadedSubjects(subjects []uniqueDmarcReportEmailSubject) (filtere
 	return
 }
 
-func writeReport(msg *dmarcReportEmail) error {
-	err := ensureDirExists(msg.targetDir())
+func writeReport(msg *dmarcReportEmail, baseDir string) error {
+	err := ensureDirExists(msg.targetDir(baseDir))
 	if err != nil {
 		return err
 	}
@@ -64,6 +64,6 @@ func writeReport(msg *dmarcReportEmail) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Writing new report %s", msg.targetPath())
-	return ioutil.WriteFile(msg.targetPath(), xmlBytes, 0600)
+	log.Printf("Writing new report %s", msg.targetPath(baseDir))
+	return ioutil.WriteFile(msg.targetPath(baseDir), xmlBytes, 0600)
 }

@@ -1,13 +1,13 @@
 package acquire
 
 type dmarcReportEmailSubject struct {
-	_         struct{} `^Report [dD]omain:\s*`
-	Domain    string   `[^\s]+`
-	_         struct{} `\s*Submitter:\s*`
-	Submitter string   `[^\s]+`
-	_         struct{} `\s*Report-ID:\s*<?`
-	ReportID  string   `[^\s^>]+`
-	_         struct{} `>?\s*`
+	_         struct{} `regexp:"^Report [dD]omain:\\s*"`
+	Domain    string   `regexp:"[^\\s]+"`
+	_         struct{} `regexp:"\\s*Submitter:\\s*"`
+	Submitter string   `regexp:"[^\\s]+"`
+	_         struct{} `regexp:"\\s*Report-ID:\\s*<?"`
+	ReportID  string   `regexp:"[^\\s^>]+"`
+	_         struct{} `regexp:">?\\s*"`
 }
 
 type uniqueDmarcReportEmailSubject struct {
