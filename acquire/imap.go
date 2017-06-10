@@ -35,7 +35,7 @@ func connect(server, username, password string) (*client.Client, error) {
 
 func getDmarcMessageSubjects(c *client.Client) (dmarcEmails []uniqueDmarcReportEmailSubject) {
 	// Get all messages
-	seqset, err := imap.NewSeqSet("1:*")
+	seqset, err := imap.ParseSeqSet("1:*")
 	if err != nil {
 		log.Fatal(err)
 	}
