@@ -8,9 +8,9 @@ install:
   - go get -u github.com/jteeuwen/go-bindata/...
 
 script:
-  - go-bindata html/... bindata/bindata.go
-  - ./lint_metalinter.sh
   - ./lint_gofmt.sh
+  - go-bindata -pkg bindata -o bindata/bindata.go html/...
+  - ./lint_metalinter.sh
   - ./run_tests.sh
 
 after_success:
