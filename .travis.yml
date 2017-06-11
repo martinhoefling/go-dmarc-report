@@ -5,8 +5,10 @@ go:
 
 install:
   - ./install_metalinter.sh
+  - go get -u github.com/jteeuwen/go-bindata/...
 
 script:
+  - go-bindata html/... bindata/bindata.go
   - ./lint_metalinter.sh
   - ./lint_gofmt.sh
   - ./run_tests.sh

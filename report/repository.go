@@ -1,5 +1,6 @@
 package report
 
+import "log"
 import "time"
 
 var requestChannel = make(chan request)
@@ -12,8 +13,12 @@ type request struct {
 	Result    chan map[string][]Feedback
 }
 
-func Repository(reportPath string) {
-	dmarcReports := ReadReports(reportPath)
+func Repository(reportPath string) error {
+	dmarcReports, err := ReadReports(reportPath)
+	if err != nil {
+		return err
+	}
+	log.Print("Reports read in")
 	for req := range requestChannel {
 		if req.Domain == "" {
 			req.Result <- dmarcReports
@@ -31,6 +36,7 @@ func Repository(reportPath string) {
 			req.Result <- domainReports
 		}
 	}
+	return nil
 }
 
 func RequestAllReports() map[string][]Feedback {

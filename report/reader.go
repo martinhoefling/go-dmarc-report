@@ -3,25 +3,17 @@ package report
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"path"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"compress/gzip"
-
-	"io"
-	"os"
-
-	"archive/zip"
-
-	"bytes"
-
-	"github.com/martinhoefling/go-dmarc-report/utils"
 )
+
+var CompiledFeedbackRegexp *regexp.Regexp
 
 type customTime struct {
 	time.Time
@@ -81,51 +73,51 @@ func (c *customInt) UnmarshalXMLAttr(attr xml.Attr) error {
 	return nil
 }
 
-func ReadReports(reportPath string) map[string][]Feedback {
-	files, err := ioutil.ReadDir(reportPath)
-	utils.CheckError(err)
-	reports := make(map[string][]Feedback)
-	for _, f := range files {
-		filePath, err := filepath.Abs(path.Join(reportPath, f.Name()))
-		utils.CheckError(err)
-		fmt.Printf("Loading %s\n", filePath)
-		var file io.Reader
-		file, err = os.Open(filePath)
-		utils.CheckError(err)
-		if strings.HasSuffix(filePath, ".gz") {
-			file, err = gzip.NewReader(file)
-			utils.CheckError(err)
-		}
-		if strings.HasSuffix(filePath, ".zip") {
-			bt, err2 := ioutil.ReadAll(file)
-			utils.CheckError(err2)
-			r, err2 := zip.NewReader(bytes.NewReader(bt), int64(len(bt)))
-			utils.CheckError(err2)
-			if len(r.File) != 1 {
-				fmt.Printf("Not exactly one file in zip %s", filePath)
-				continue
-			}
-			f := r.File[0]
-			if !strings.HasSuffix(f.Name, ".xml") {
-				fmt.Printf("Not an xml file in zip %s", filePath)
-				continue
-			}
-			file, err2 = f.Open()
-			utils.CheckError(err2)
-		}
-		r, _ := regexp.Compile("(?is:<feedback.*</feedback>)")
-		fileBytes, err := ioutil.ReadAll(file)
-		utils.CheckError(err)
-		validBytes := r.Find(fileBytes)
-		var q Query
-		utils.CheckError(xml.Unmarshal(validBytes, &q.Feedback))
-		domain := q.Feedback.PolicyPublished.Domain
-		domainReports, ok := reports[domain]
-		if !ok {
-			domainReports = make([]Feedback, 0)
-			reports[domain] = append(domainReports, q.Feedback)
-		}
+func readReport(path string, reports map[string][]Feedback) error {
+	fmt.Printf("Loading %s\n", path)
+	var file io.Reader
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	validBytes := CompiledFeedbackRegexp.Find(fileBytes)
+	var q Query
+	err = xml.Unmarshal(validBytes, &q.Feedback)
+	if err != nil {
+		return err
+	}
+	domain := q.Feedback.PolicyPublished.Domain
+	domainReports, ok := reports[domain]
+	if !ok {
+		domainReports = make([]Feedback, 0)
 		reports[domain] = append(domainReports, q.Feedback)
 	}
-	return reports
+	reports[domain] = append(domainReports, q.Feedback)
+	return nil
+}
+
+func getVisitFunc(reports map[string][]Feedback) filepath.WalkFunc {
+	return func(path string, f os.FileInfo, err error) error {
+		if strings.HasSuffix(path, ".xml") {
+			return readReport(path, reports)
+		}
+		return nil
+	}
+}
+
+func ReadReports(reportPath string) (map[string][]Feedback, error) {
+	reports := make(map[string][]Feedback)
+	CompiledFeedbackRegexp = regexp.MustCompile("(?is:<feedback.*</feedback>)")
+
+	fmt.Printf("Loading Reports from %s\n", reportPath)
+
+	err := filepath.Walk(reportPath, getVisitFunc(reports))
+	if err != nil {
+		return nil, err
+	}
+	return reports, nil
 }
