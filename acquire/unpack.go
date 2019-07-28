@@ -11,7 +11,7 @@ import (
 
 func unpackReport(filename string, data []byte) ([]byte, error) {
 	dataBuffer := bytes.NewBuffer(data)
-	if strings.HasSuffix(filename, ".gz") {
+	if strings.HasSuffix(filename, ".gz") || strings.HasSuffix(filename, ".gzip") {
 		file, err := gzip.NewReader(dataBuffer)
 		if err != nil {
 			return nil, err

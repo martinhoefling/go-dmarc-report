@@ -17,6 +17,6 @@ type uniqueDmarcReportEmailSubject struct {
 
 type dmarcReportEmail struct {
 	uniqueDmarcReportEmailSubject
-	data     []byte
+	xml      []byte
 	filename string
 }

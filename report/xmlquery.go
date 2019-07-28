@@ -5,9 +5,34 @@ type Query struct {
 }
 
 type Feedback struct {
+	Version         string          `xml:"version"`
 	Metadata        Metadata        `xml:"report_metadata"`
 	PolicyPublished PolicyPublished `xml:"policy_published"`
 	Records         []Record        `xml:"record"` // Min 1
+}
+
+type Record struct {
+	Row         Row         `xml:"row"`
+	Identifiers Identifiers `xml:"identifiers"`
+	AuthResults AuthResults `xml:"auth_results"`
+}
+
+type AuthResults struct {
+	DKIM []DKIM `xml:"dkim"` // Min 0
+	SPF  []SPF  `xml:"spf"`  // Min 1
+}
+
+type DKIM struct {
+	Domain      string `xml:"domain"`       // Min 1
+	Result      string `xml:"result"`       // Min 1
+	HumanResult string `xml:"human_result"` // Min 1
+	Selector    string `xml:"selector"`     // Min 0
+}
+
+type SPF struct {
+	Domain string `xml:"domain"` // Min 1
+	Result string `xml:"result"` // Min 1
+	Scope  string `xml:"scope"`  // Min 1
 }
 
 type Metadata struct {
@@ -28,46 +53,22 @@ type PolicyPublished struct {
 	FailureReportingOptions string    `xml:"fo"`
 }
 
-type Record struct {
-	Row         Row         `xml:"row"`
-	Identifiers Identifiers `xml:"identifiers"`
-	AuthResults AuthResults `xml:"auth_results"`
-}
-
 type Row struct {
-	SourceIP        string            `xml:"source_ip"`
-	Count           customInt         `xml:"count"`
-	PolicyEvaluated []PolicyEvaluated `xml:"policy_evaluated"` // Min 1
+	SourceIP        string          `xml:"source_ip"`
+	Count           customInt       `xml:"count"`
+	PolicyEvaluated PolicyEvaluated `xml:"policy_evaluated"` // Min 1
 }
 
 type Identifiers struct {
-	HeaderFrom   []string `xml:"header_from"`   // Min 1
-	EnvelopeFrom []string `xml:"envelope_from"` // Min 1 ??
-	EnvelopeTo   []string `xml:"envelope_to"`   // Min 0
-}
-
-type AuthResults struct {
-	DKIM []DKIM `xml:"dkim"` // Min 0
-	SPF  []SPF  `xml:"spf"`  // Min 1
+	HeaderFrom   string `xml:"header_from"`   // Min 1
+	EnvelopeFrom string `xml:"envelope_from"` // Min 1 ??
+	EnvelopeTo   string `xml:"envelope_to"`   // Min 0
 }
 
 type PolicyEvaluated struct {
 	Disposition string `xml:"disposition"`
 	DKIM        string `xml:"dkim"`
 	SPF         string `xml:"spf"`
-}
-
-type DKIM struct {
-	Domain      string `xml:"domain"`       // Min 1
-	Result      string `xml:"result"`       // Min 1
-	HumanResult string `xml:"human_result"` // Min 1
-	Selector    string `xml:"selector"`     // Min 0
-}
-
-type SPF struct {
-	Domain string `xml:"domain"` // Min 1
-	Result string `xml:"result"` // Min 1
-	Scope  string `xml:"scope"`  // Min 1
 }
 
 type DateRange struct {

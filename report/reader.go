@@ -27,6 +27,10 @@ func (c customInt) String() string {
 	return fmt.Sprintf("%v", c.int64)
 }
 
+func (c customInt) Int64() int64 {
+	return c.int64
+}
+
 func (c *customTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v string
 	err := d.DecodeElement(&v, &start)
@@ -84,20 +88,31 @@ func readReport(path string, reports map[string][]Feedback) error {
 	if err != nil {
 		return err
 	}
-	validBytes := CompiledFeedbackRegexp.Find(fileBytes)
-	var q Query
-	err = xml.Unmarshal(validBytes, &q.Feedback)
+	feedback, err := ReadFeedbackXML(fileBytes)
 	if err != nil {
 		return err
 	}
-	domain := q.Feedback.PolicyPublished.Domain
+	domain := feedback.PolicyPublished.Domain
 	domainReports, ok := reports[domain]
 	if !ok {
 		domainReports = make([]Feedback, 0)
-		reports[domain] = append(domainReports, q.Feedback)
+		reports[domain] = append(domainReports, *feedback)
 	}
-	reports[domain] = append(domainReports, q.Feedback)
+	reports[domain] = append(domainReports, *feedback)
 	return nil
+}
+
+func ReadFeedbackXML(xmlBytes []byte) (*Feedback, error) {
+	if CompiledFeedbackRegexp == nil {
+		CompiledFeedbackRegexp = regexp.MustCompile("(?is:<feedback.*</feedback>)")
+	}
+
+	validBytes := CompiledFeedbackRegexp.Find(xmlBytes)
+	feedback := &Feedback{}
+	if err := xml.Unmarshal(validBytes, feedback); err != nil {
+		return nil, err
+	}
+	return feedback, nil
 }
 
 func getVisitFunc(reports map[string][]Feedback) filepath.WalkFunc {
@@ -111,7 +126,9 @@ func getVisitFunc(reports map[string][]Feedback) filepath.WalkFunc {
 
 func ReadReports(reportPath string) (map[string][]Feedback, error) {
 	reports := make(map[string][]Feedback)
-	CompiledFeedbackRegexp = regexp.MustCompile("(?is:<feedback.*</feedback>)")
+	if CompiledFeedbackRegexp == nil {
+		CompiledFeedbackRegexp = regexp.MustCompile("(?is:<feedback.*</feedback>)")
+	}
 
 	fmt.Printf("Loading Reports from %s\n", reportPath)
 

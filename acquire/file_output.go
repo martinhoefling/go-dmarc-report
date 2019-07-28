@@ -40,7 +40,7 @@ func ensureDirExists(path string) error {
 	return nil
 }
 
-func filterDownloadedSubjects(subjects []uniqueDmarcReportEmailSubject, baseDir string) (filteredSubjects []uniqueDmarcReportEmailSubject, err error) {
+func filterDownloadedSubjectsByPath(subjects []uniqueDmarcReportEmailSubject, baseDir string) (filteredSubjects []uniqueDmarcReportEmailSubject, err error) {
 	var exists bool
 	for _, subject := range subjects {
 		exists, err = pathExists(subject.targetPath(baseDir))
@@ -59,11 +59,21 @@ func writeReport(msg *dmarcReportEmail, baseDir string) error {
 	if err != nil {
 		return err
 	}
-	var xmlBytes []byte
-	xmlBytes, err = unpackReport(msg.filename, msg.data)
-	if err != nil {
-		return err
-	}
+
 	log.Printf("Writing new report %s", msg.targetPath(baseDir))
-	return ioutil.WriteFile(msg.targetPath(baseDir), xmlBytes, 0600)
+	return ioutil.WriteFile(msg.targetPath(baseDir), msg.xml, 0600)
+}
+
+// DownloadMissingAttachments returns all DMARC-relevant attachments in the given mailbox
+func DownloadMissingAttachments(server, user, password, mailbox, reportDir string) error {
+
+	filter := func(subjects []uniqueDmarcReportEmailSubject) (filteredSubjects []uniqueDmarcReportEmailSubject, err error) {
+		return filterDownloadedSubjectsByPath(subjects, reportDir)
+	}
+
+	process := func(report *dmarcReportEmail) error {
+		return writeReport(report, reportDir)
+	}
+
+	return processNewAttachements(filter, process, server, user, password, mailbox)
 }

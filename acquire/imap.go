@@ -41,7 +41,7 @@ func getDmarcMessageSubjects(c *client.Client) (dmarcEmails []uniqueDmarcReportE
 	}
 	messageChan := make(chan *imap.Message)
 	go func() {
-		if err := c.Fetch(seqset, []string{"ENVELOPE", "UID"}, messageChan); err != nil {
+		if err := c.Fetch(seqset, []imap.FetchItem{"ENVELOPE", "UID"}, messageChan); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -52,6 +52,7 @@ func getDmarcMessageSubjects(c *client.Client) (dmarcEmails []uniqueDmarcReportE
 			log.Fatal(err)
 		}
 		if ok {
+			log.Printf("%s %s", msg.Envelope.Subject, subject.ReportID)
 			email := uniqueDmarcReportEmailSubject{subject, msg.Uid}
 			log.Printf("Report for %s from %s with ID %s", email.Domain, email.Submitter, email.ReportID)
 			dmarcEmails = append(dmarcEmails, email)
@@ -66,9 +67,10 @@ func extractData(c *client.Client, msg *imap.Message) (string, []byte, error) {
 	if msg == nil || msg.BodyStructure == nil {
 		return "", nil, fmt.Errorf("nil/bad message: %v", msg)
 	}
-	if strings.ToLower(msg.BodyStructure.MimeType) == "multipart" {
+
+	if strings.ToLower(msg.BodyStructure.MIMEType) == "multipart" {
 		for i, part := range msg.BodyStructure.Parts {
-			mimeType := strings.ToLower(part.MimeType)
+			mimeType := strings.ToLower(part.MIMEType)
 			if mimeType == "application" {
 				filename, data, err := getAttachment(c, msg.SeqNum, fmt.Sprintf("[%v]", i+1), part)
 				if err != nil {
@@ -81,7 +83,7 @@ func extractData(c *client.Client, msg *imap.Message) (string, []byte, error) {
 		return "", nil, fmt.Errorf("No application part found in message %v", msg)
 	}
 
-	if strings.ToLower(msg.BodyStructure.MimeType) == "application" {
+	if strings.ToLower(msg.BodyStructure.MIMEType) == "application" {
 		filename, data, err := getAttachment(c, msg.SeqNum, "[1]", msg.BodyStructure)
 		if err != nil {
 			return "", nil, err
@@ -97,8 +99,8 @@ func getAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 	seqset.AddNum(id)
 	messageChan := make(chan *imap.Message, 1)
 
-	reqString := fmt.Sprintf("BODY.PEEK%v", part)
-	err := c.Fetch(&seqset, []string{reqString}, messageChan)
+	req := imap.FetchItem(fmt.Sprintf("BODY.PEEK%v", part))
+	err := c.Fetch(&seqset, []imap.FetchItem{req}, messageChan)
 	if err != nil {
 		return "", nil, err
 	}
@@ -114,7 +116,7 @@ func getAttachment(c *client.Client, id uint32, part string, info *imap.BodyStru
 		}
 	}
 	for section, body := range msg.Body {
-		if section.String() == fmt.Sprintf("BODY%v", part) {
+		if section.FetchItem() == imap.FetchItem(imap.PartSpecifier(fmt.Sprintf("BODY%v", part))) {
 			bodyReader := io.Reader(body)
 			if info.Encoding == "base64" {
 				bodyReader = base64.NewDecoder(base64.StdEncoding, bodyReader)
@@ -142,11 +144,11 @@ func getDmarcMessageAttachments(c *client.Client, uniqueSubjects []uniqueDmarcRe
 
 	messageChan := make(chan *imap.Message)
 	go func() {
-		if err := c.UidFetch(&seqset, []string{"ENVELOPE", "BODYSTRUCTURE"}, messageChan); err != nil {
+		if err := c.UidFetch(&seqset, []imap.FetchItem{"ENVELOPE", "BODYSTRUCTURE"}, messageChan); err != nil {
 			log.Fatal(err)
 		}
 	}()
-	messages := []*imap.Message{}
+	var messages []*imap.Message
 
 	for msg := range messageChan {
 		messages = append(messages, msg)
@@ -154,10 +156,16 @@ func getDmarcMessageAttachments(c *client.Client, uniqueSubjects []uniqueDmarcRe
 	for _, msg := range messages {
 		filename, data, err := extractData(c, msg)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Error extracting data from report: %v", err)
 		}
+		log.Printf("Extracted file %s, unpacking report", filename)
+
 		if data != nil && filename != "" {
-			outputChan <- &dmarcReportEmail{subjectMap[msg.Uid], data, filename}
+			xml, err := unpackReport(filename, data)
+			if err != nil {
+				log.Fatal(err)
+			}
+			outputChan <- &dmarcReportEmail{subjectMap[msg.Uid], xml, filename}
 		}
 	}
 	close(outputChan)
